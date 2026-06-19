@@ -50,8 +50,8 @@ export function NewTransactionForm() {
       phoneNumber: "",
       utilityCompany: "",
       consumerNumber: "",
-      billAmount: 0,
-      serviceFee: 0,
+      billAmount: "" as any,
+      serviceFee: "" as any,
     },
   })
 
@@ -96,7 +96,7 @@ export function NewTransactionForm() {
 
       if (transactionError) throw transactionError
 
-      alert(`Transaction successfully saved for ${values.customerName}. Cash to collect: $${totalCashOwed.toFixed(2)}`)
+      alert(`Transaction successfully saved for ${values.customerName}. Cash to collect: PKR ${totalCashOwed.toFixed(2)}`)
       form.reset()
     } catch (error: any) {
       console.error("Error saving transaction:", error)
@@ -175,9 +175,9 @@ export function NewTransactionForm() {
                 name="billAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Exact Bill Amount ($)</FormLabel>
+                    <FormLabel>Exact Bill Amount (PKR)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" {...field} value={field.value === 0 ? "" : field.value} onChange={e => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -188,9 +188,9 @@ export function NewTransactionForm() {
                 name="serviceFee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Service Fee ($)</FormLabel>
+                    <FormLabel>Service Fee (PKR)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" {...field} value={field.value === 0 ? "" : field.value} onChange={e => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -201,7 +201,7 @@ export function NewTransactionForm() {
             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between border">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Total Cash to Collect</p>
-                <p className="text-3xl font-bold text-primary">${totalCashOwed.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-primary">PKR {totalCashOwed.toFixed(2)}</p>
               </div>
               <Button type="submit" size="lg" className="px-8 shadow-md" disabled={isSubmitting}>
                 {isSubmitting ? "Processing..." : "Process Payment"}

@@ -48,15 +48,15 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
                 <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Today's Total Cash</p>
-                <p className="text-3xl font-bold mt-2">$24,500.00</p>
+                <p className="text-3xl font-bold mt-2">PKR 24,500.00</p>
               </div>
               <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">
                 <p className="text-sm text-primary font-medium uppercase tracking-wider">Today's Service Fee Revenue</p>
-                <p className="text-3xl font-bold mt-2 text-primary">$450.00</p>
+                <p className="text-3xl font-bold mt-2 text-primary">PKR 450.00</p>
               </div>
               <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm">
                 <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
-                <p className="text-3xl font-bold mt-2 text-destructive">$6,800.50</p>
+                <p className="text-3xl font-bold mt-2 text-destructive">PKR 6,800.50</p>
               </div>
             </div>
 
