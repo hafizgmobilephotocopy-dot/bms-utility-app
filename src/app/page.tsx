@@ -4,6 +4,7 @@ import { useState } from "react"
 import { NewTransactionForm } from "@/components/NewTransactionForm"
 import { ExceptionQueue } from "@/components/ExceptionQueue"
 import { Button } from "@/components/ui/button"
+import { logout } from "./login/actions"
 
 export default function Dashboard() {
   const [view, setView] = useState<"expenses" | "transactions">("transactions")
@@ -11,26 +12,33 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 p-6">
       <div className="max-w-6xl mx-auto space-y-8">
-        <header className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-zinc-950 p-4 rounded-xl shadow-sm border">
-          <h1 className="text-2xl font-black text-primary tracking-tight mb-4 md:mb-0">
+        <header className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-zinc-950 p-4 rounded-xl shadow-sm border gap-4">
+          <h1 className="text-2xl font-black text-primary tracking-tight md:mb-0">
             Franchise & Utility Bill Management
           </h1>
           
-          <div className="flex gap-2 bg-muted p-1 rounded-lg">
-            <Button
-              variant={view === "expenses" ? "default" : "ghost"}
-              onClick={() => setView("expenses")}
-              className="font-medium"
-            >
-              Shop Expenses
-            </Button>
-            <Button
-              variant={view === "transactions" ? "default" : "ghost"}
-              onClick={() => setView("transactions")}
-              className="font-medium"
-            >
-              Customer Transactions
-            </Button>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <div className="flex gap-2 bg-muted p-1 rounded-lg">
+              <Button
+                variant={view === "expenses" ? "default" : "ghost"}
+                onClick={() => setView("expenses")}
+                className="font-medium"
+              >
+                Shop Expenses
+              </Button>
+              <Button
+                variant={view === "transactions" ? "default" : "ghost"}
+                onClick={() => setView("transactions")}
+                className="font-medium"
+              >
+                Customer Transactions
+              </Button>
+            </div>
+            <form action={logout}>
+              <Button variant="outline" type="submit" className="font-medium border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                Sign Out
+              </Button>
+            </form>
           </div>
         </header>
 
