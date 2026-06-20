@@ -48,7 +48,7 @@ export function ExceptionQueue() {
   }
 
   const handleRefund = (id: string, refundAmount: number) => {
-    const confirmRefund = window.confirm(`Confirm refund of $${refundAmount.toFixed(2)} to customer?`)
+    const confirmRefund = window.confirm(`Confirm refund of PKR ${refundAmount.toFixed(2)} to customer?`)
     if (confirmRefund) {
       alert(`Transaction ${id} marked as Refunded_To_Customer.`)
       setExceptions(exceptions.filter((tx) => tx.id !== id))
@@ -104,10 +104,10 @@ export function ExceptionQueue() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    ${tx.bill_amount.toFixed(2)}
+                    PKR {tx.bill_amount.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right font-bold text-lg text-primary">
-                    ${tx.total_cash_collected.toFixed(2)}
+                    PKR {tx.total_cash_collected.toFixed(2)}
                   </TableCell>
                   <TableCell className="text-center space-x-2">
                     <Button variant="outline" size="sm" onClick={() => handleRetry(tx.id)}>
