@@ -66,10 +66,14 @@ export function NewTransactionForm() {
   }, [billAmount, serviceFee])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
+    setMessage(null)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+
       // 1. Upsert customer
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
@@ -91,16 +95,17 @@ export function NewTransactionForm() {
           consumer_number: values.consumerNumber,
           bill_amount: values.billAmount,
           service_fee: values.serviceFee,
-          status: 'Pending_Processing'
+          status: 'Pending_Processing',
+          recorded_by: user?.id || null
         })
 
       if (transactionError) throw transactionError
 
-      alert(`Transaction successfully saved for ${values.customerName}. Cash to collect: PKR ${totalCashOwed.toFixed(2)}`)
+      setMessage({ type: 'success', text: `Transaction successfully saved for ${values.customerName}. Cash to collect: PKR ${totalCashOwed.toFixed(2)}` })
       form.reset()
     } catch (error: any) {
       console.error("Error saving transaction:", error)
-      alert("Failed to save transaction: " + error.message)
+      setMessage({ type: 'error', text: "Failed to save transaction: " + error.message })
     } finally {
       setIsSubmitting(false)
     }
@@ -207,6 +212,11 @@ export function NewTransactionForm() {
                 {isSubmitting ? "Processing..." : "Process Payment"}
               </Button>
             </div>
+            {message && (
+              <div className={`p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+                {message.text}
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>
