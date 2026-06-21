@@ -37,7 +37,7 @@ export default function Dashboard() {
       // Fetch today's transactions for cash and service fee (exclude deleted)
       const { data: todayTxs, error: errorToday } = await supabase
         .from('customer_transactions')
-        .select('total_cash_collected, service_fee')
+        .select('total_cash_collected, service_fee, status')
         .gte('date_collected', startIso)
         .lte('date_collected', endIso)
         .eq('is_deleted', false)
@@ -48,8 +48,12 @@ export default function Dashboard() {
       let totalFee = 0
       if (todayTxs) {
         todayTxs.forEach(tx => {
-          totalCash += Number(tx.total_cash_collected || 0)
-          totalFee += Number(tx.service_fee || 0)
+          if (tx.status === 'Pending_Processing') {
+            totalCash += Number(tx.total_cash_collected || 0)
+          }
+          if (tx.status !== 'Refunded_To_Customer' && tx.status !== 'Rolled_Over_To_New_Bill') {
+            totalFee += Number(tx.service_fee || 0)
+          }
         })
       }
 
@@ -151,7 +155,7 @@ export default function Dashboard() {
         {(view === "transactions" || view === "upcoming" || view === "exceptions") && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Today's Total Cash</p>
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Pending Bill Cash</p>
               <p className="text-3xl font-bold mt-2">PKR {kpis.totalCashToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
             </div>
             <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">

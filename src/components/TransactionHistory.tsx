@@ -35,6 +35,7 @@ export function TransactionHistory() {
   const [updateStatus, setUpdateStatus] = useState("")
   const [updateRefId, setUpdateRefId] = useState("")
   const [updateSource, setUpdateSource] = useState("")
+  const [updateCnic, setUpdateCnic] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export function TransactionHistory() {
     setUpdateStatus(tx.status)
     setUpdateRefId(tx.payment_reference_id || "")
     setUpdateSource(tx.payment_source || "")
+    setUpdateCnic(tx.refund_cnic || "")
     setIsDialogOpen(true)
   }
 
@@ -77,6 +79,8 @@ export function TransactionHistory() {
       if (updateStatus === "Paid") {
         updates.payment_reference_id = updateRefId
         updates.payment_source = updateSource
+      } else if (updateStatus === "Refunded_To_Customer") {
+        updates.refund_cnic = updateCnic
       }
 
       const { error } = await supabase
@@ -288,13 +292,35 @@ export function TransactionHistory() {
                 </div>
               </div>
             )}
+
+            {updateStatus === "Refunded_To_Customer" && (
+              <div className="space-y-4 border p-4 rounded-lg bg-destructive/10 border-destructive/20">
+                <div className="grid gap-2">
+                  <label className="text-sm font-bold text-destructive">Receiver's CNIC <span className="text-destructive">*</span></label>
+                  <Input 
+                    value={updateCnic}
+                    onChange={(e) => setUpdateCnic(e.target.value)}
+                    placeholder="e.g. 42101-1234567-1"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Required to securely log who collected the cash refund.</p>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateTransaction} disabled={isUpdating || (updateStatus === 'Paid' && (!updateSource || !updateRefId))}>
+            <Button 
+              onClick={handleUpdateTransaction} 
+              disabled={
+                isUpdating || 
+                (updateStatus === 'Paid' && (!updateSource || !updateRefId)) ||
+                (updateStatus === 'Refunded_To_Customer' && (!updateCnic || updateCnic.length < 5))
+              }
+            >
               {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
