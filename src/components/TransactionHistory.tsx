@@ -189,7 +189,7 @@ export function TransactionHistory() {
                 ) : (
                   filteredTransactions.map((t) => (
                     <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium text-xs">
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
                         {new Date(t.date_collected).toLocaleString(undefined, { 
                           month: 'short', 
                           day: 'numeric',
@@ -198,8 +198,8 @@ export function TransactionHistory() {
                         })}
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-semibold">{t.customer_name}</p>
+                        <div className="max-w-[120px]">
+                          <p className="font-semibold truncate" title={t.customer_name}>{t.customer_name}</p>
                           <p className="text-xs text-muted-foreground">{t.phone_number}</p>
                         </div>
                       </TableCell>
@@ -209,9 +209,9 @@ export function TransactionHistory() {
                           <Badge variant="destructive" className="ml-2 font-normal text-[10px] px-1 py-0 h-4">Late</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{t.consumer_number}</TableCell>
-                      <TableCell className="text-right font-bold text-primary">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{t.manager_email || 'Unknown'}</TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{t.consumer_number}</TableCell>
+                      <TableCell className="text-right font-bold text-primary whitespace-nowrap">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground truncate max-w-[100px]" title={t.manager_email}>{t.manager_email?.split('@')[0] || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge variant={
                           t.status === 'Paid' ? 'default' : 
