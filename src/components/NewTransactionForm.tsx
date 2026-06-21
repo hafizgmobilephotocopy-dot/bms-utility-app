@@ -70,6 +70,27 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     setTotalCashOwed(amount + fee)
   }, [billAmount, serviceFee])
 
+  const phoneNumber = form.watch("phoneNumber")
+
+  useEffect(() => {
+    if (phoneNumber && phoneNumber.length >= 10) {
+      const fetchCustomer = async () => {
+        const { data } = await supabase
+          .from('customers')
+          .select('name')
+          .eq('phone_number', phoneNumber)
+          .single()
+        
+        if (data && data.name) {
+          // Only auto-fill if they haven't manually typed a long name yet, or if it's currently empty
+          // Actually, it's safer to just set it so they see the linked profile name.
+          form.setValue('customerName', data.name)
+        }
+      }
+      fetchCustomer()
+    }
+  }, [phoneNumber, form])
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
