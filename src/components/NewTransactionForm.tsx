@@ -16,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -38,6 +39,7 @@ const formSchema = z.object({
   serviceFee: z.coerce.number().min(0, {
     message: "Service fee cannot be negative.",
   }),
+  isAfterDueDate: z.boolean().default(false),
 })
 
 export function NewTransactionForm() {
@@ -50,8 +52,9 @@ export function NewTransactionForm() {
       phoneNumber: "",
       utilityCompany: "",
       consumerNumber: "",
-      billAmount: "" as any,
-      serviceFee: "" as any,
+      billAmount: 0,
+      serviceFee: 0,
+      isAfterDueDate: false,
     },
   })
 
@@ -96,7 +99,8 @@ export function NewTransactionForm() {
           bill_amount: values.billAmount,
           service_fee: values.serviceFee,
           status: 'Pending_Processing',
-          recorded_by: user?.id || null
+          recorded_by: user?.id || null,
+          is_after_due_date: values.isAfterDueDate
         })
 
       if (transactionError) throw transactionError
@@ -202,6 +206,29 @@ export function NewTransactionForm() {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="isAfterDueDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Bill Received After Due Date
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Check this if the customer brought the bill after its due date.
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
             
             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between border">
               <div>
