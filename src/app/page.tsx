@@ -31,11 +31,12 @@ export default function Dashboard() {
   async function fetchKPIs() {
     try {
       // Get selected start and end timestamps in local time
-      const startOfDay = new Date(kpiStartDate)
-      startOfDay.setHours(0, 0, 0, 0)
+      // Parse YYYY-MM-DD manually to avoid timezone shift quirks
+      const [sYear, sMonth, sDay] = kpiStartDate.split('-')
+      const startOfDay = new Date(Number(sYear), Number(sMonth) - 1, Number(sDay), 0, 0, 0, 0)
       
-      const endOfDay = new Date(kpiEndDate)
-      endOfDay.setHours(23, 59, 59, 999)
+      const [eYear, eMonth, eDay] = kpiEndDate.split('-')
+      const endOfDay = new Date(Number(eYear), Number(eMonth) - 1, Number(eDay), 23, 59, 59, 999)
 
       const startIso = startOfDay.toISOString()
       const endIso = endOfDay.toISOString()
