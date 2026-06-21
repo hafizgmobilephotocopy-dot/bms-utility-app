@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Download } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -144,15 +145,69 @@ export function TransactionHistory() {
     return matchesUtility && matchesSearch
   })
 
+  function exportToCSV() {
+    if (filteredTransactions.length === 0) {
+      alert("No data to export.")
+      return
+    }
+
+    const headers = [
+      "Date",
+      "Customer",
+      "Phone",
+      "Utility",
+      "Consumer No.",
+      "Total Cash (PKR)",
+      "Manager",
+      "Status",
+      "Payment Source",
+      "Payment Ref ID"
+    ]
+
+    const rows = filteredTransactions.map(t => [
+      `"${new Date(t.date_collected).toLocaleString()}"`,
+      `"${(t.customer_name || '').replace(/"/g, '""')}"`,
+      `"${t.phone_number || ''}"`,
+      `"${t.utility_company || ''}"`,
+      `"${t.consumer_number || ''}"`,
+      t.total_cash_collected,
+      `"${(t.manager_email || '').replace(/"/g, '""')}"`,
+      `"${t.status || ''}"`,
+      `"${(t.payment_source || '').replace(/"/g, '""')}"`,
+      `"${(t.payment_reference_id || '').replace(/"/g, '""')}"`
+    ])
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => r.join(","))
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `transactions_export_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <>
       <Card className="shadow-lg border-muted/50 rounded-2xl overflow-hidden animate-in fade-in duration-500">
         <CardHeader className="bg-muted/30 border-b border-muted/50 pb-4">
           <CardTitle className="text-xl font-bold flex items-center justify-between">
-            Transaction History
-            <Badge variant="outline" className="font-normal bg-background">
-              {filteredTransactions.length} records
-            </Badge>
+            <div className="flex items-center gap-2">
+              Transaction History
+              <Badge variant="outline" className="font-normal bg-background">
+                {filteredTransactions.length} records
+              </Badge>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Export as CSV
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
