@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { NewTransactionForm } from "@/components/NewTransactionForm"
+import { TransactionHistory } from "@/components/TransactionHistory"
 import { ExceptionQueue } from "@/components/ExceptionQueue"
 import { Button } from "@/components/ui/button"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history">("transactions")
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 p-6">
@@ -32,6 +33,13 @@ export default function Dashboard() {
                 className="font-medium"
               >
                 Customer Transactions
+              </Button>
+              <Button
+                variant={view === "history" ? "default" : "ghost"}
+                onClick={() => setView("history")}
+                className="font-medium"
+              >
+                Transaction History
               </Button>
             </div>
             <form action={logout}>
@@ -71,6 +79,12 @@ export default function Dashboard() {
             <h2 className="text-2xl font-bold mb-2">Shop Expenses Dashboard</h2>
             <p className="text-muted-foreground">This section will handle tracking rent, electricity, and other overheads.</p>
             <p className="text-sm mt-4 text-primary">In Development for Phase 2</p>
+          </div>
+        )}
+
+        {view === "history" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <TransactionHistory />
           </div>
         )}
       </div>
