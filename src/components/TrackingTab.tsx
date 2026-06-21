@@ -91,7 +91,6 @@ export function TrackingTab() {
                   <TableHead className="text-right">Total Cash</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -136,25 +135,6 @@ export function TrackingTab() {
                         } className="font-normal">
                           {t.status.replace(/_/g, ' ')}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-8 px-2 text-xs"
-                            onClick={() => {
-                              setSelectedTxId(t.id)
-                              setUpdateStatus(t.status)
-                              setUpdateSource(t.payment_source || "")
-                              setUpdateRefId(t.payment_reference_id || "")
-                              setUpdateCnic(t.refund_cnic || "")
-                              setIsDialogOpen(true)
-                            }}
-                          >
-                            Update
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))

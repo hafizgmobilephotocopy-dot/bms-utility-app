@@ -37,6 +37,7 @@ export function TransactionHistory() {
   const [updateSource, setUpdateSource] = useState("")
   const [updateCnic, setUpdateCnic] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchTransactions()
@@ -100,9 +101,10 @@ export function TransactionHistory() {
     }
   }
 
-  async function handleDeleteTransaction(id: string) {
+  async function handleDelete(id: string) {
     const confirmDelete = window.confirm("Are you sure you want to delete this transaction?")
     if (confirmDelete) {
+      setDeletingId(id)
       try {
         const { data: { user } } = await supabase.auth.getUser()
         
@@ -121,6 +123,8 @@ export function TransactionHistory() {
       } catch (error) {
         console.error("Error deleting transaction:", error)
         alert("Failed to delete transaction.")
+      } finally {
+        setDeletingId(null)
       }
     }
   }
@@ -223,14 +227,7 @@ export function TransactionHistory() {
                             variant="ghost" 
                             size="sm"
                             className="h-8 px-2 text-xs"
-                            onClick={() => {
-                              setSelectedTxId(t.id)
-                              setUpdateStatus(t.status)
-                              setUpdateSource(t.payment_source || "")
-                              setUpdateRefId(t.payment_reference_id || "")
-                              setUpdateCnic(t.refund_cnic || "")
-                              setIsDialogOpen(true)
-                            }}
+                            onClick={() => openUpdateDialog(t)}
                           >
                             Update
                           </Button>
