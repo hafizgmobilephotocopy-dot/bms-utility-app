@@ -239,19 +239,12 @@ export function TransactionHistory() {
             {updateStatus === "Paid" && (
               <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
                 <div className="grid gap-2">
-                  <label className="text-sm font-medium">Payment Source</label>
-                  <select 
+                  <label className="text-sm font-medium">Payment Source (e.g. Bank Name, App, etc.)</label>
+                  <Input 
                     value={updateSource}
                     onChange={(e) => setUpdateSource(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="" disabled>Select Source...</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="JazzCash">JazzCash</option>
-                    <option value="Easypaisa">Easypaisa</option>
-                    <option value="SadaPay">SadaPay</option>
-                    <option value="NayaPay">NayaPay</option>
-                  </select>
+                    placeholder="e.g. Allied Bank, Easypaisa, Cash..."
+                  />
                 </div>
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Payment Reference ID / TID</label>
