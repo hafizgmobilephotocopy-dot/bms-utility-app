@@ -43,7 +43,7 @@ const formSchema = z.object({
   dueDate: z.string().optional(),
 })
 
-export function NewTransactionForm() {
+export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [totalCashOwed, setTotalCashOwed] = useState(0)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -110,6 +110,7 @@ export function NewTransactionForm() {
 
       setMessage({ type: 'success', text: `Transaction successfully saved for ${values.customerName}. Cash to collect: PKR ${totalCashOwed.toFixed(2)}` })
       form.reset()
+      if (onSuccess) onSuccess()
     } catch (error: any) {
       console.error("Error saving transaction:", error)
       setMessage({ type: 'error', text: "Failed to save transaction: " + error.message })

@@ -101,7 +101,13 @@ export function CompletedTransactions() {
                 filteredTransactions.map((t) => (
                   <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium whitespace-nowrap">
-                      {new Date(t.date_collected).toLocaleDateString()}
+                      {new Date(t.date_collected).toLocaleString(undefined, { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </TableCell>
                     <TableCell>
                       <div>
