@@ -7,11 +7,12 @@ import { TransactionHistory } from "@/components/TransactionHistory"
 import { ExceptionQueue } from "@/components/ExceptionQueue"
 import { UpcomingBills } from "@/components/UpcomingBills"
 import { DeletedTransactions } from "@/components/DeletedTransactions"
+import { CompletedTransactions } from "@/components/CompletedTransactions"
 import { Button } from "@/components/ui/button"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted" | "completed">("transactions")
   const [kpis, setKpis] = useState({
     totalCashToday: 0,
     serviceFeeToday: 0,
@@ -124,6 +125,13 @@ export default function Dashboard() {
                 Transaction History
               </Button>
               <Button
+                variant={view === "completed" ? "default" : "ghost"}
+                onClick={() => setView("completed")}
+                className="font-medium text-green-700 hover:text-green-800 dark:text-green-400"
+              >
+                Completed Bills
+              </Button>
+              <Button
                 variant={view === "deleted" ? "default" : "ghost"}
                 onClick={() => setView("deleted")}
                 className="font-medium text-destructive hover:text-destructive"
@@ -191,6 +199,12 @@ export default function Dashboard() {
         {view === "history" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <TransactionHistory />
+          </div>
+        )}
+
+        {view === "completed" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <CompletedTransactions />
           </div>
         )}
 

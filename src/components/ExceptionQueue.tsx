@@ -13,10 +13,25 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function ExceptionQueue() {
   const [exceptions, setExceptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Refund Dialog State
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false)
+  const [selectedTx, setSelectedTx] = useState<any>(null)
+  const [refundCnic, setRefundCnic] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     fetchExceptions()
@@ -41,28 +56,67 @@ export function ExceptionQueue() {
     }
   }
 
-  const handleRefund = async (id: string, refundAmount: number) => {
-    const confirmRefund = window.confirm(`Confirm refund of PKR ${refundAmount.toFixed(2)} to customer?`)
-    if (confirmRefund) {
+  const openRefundDialog = (tx: any) => {
+    setSelectedTx(tx)
+    setRefundCnic("")
+    setIsRefundDialogOpen(true)
+  }
+
+  const handleRefundSubmit = async () => {
+    if (!selectedTx) return
+    if (!refundCnic.trim() || refundCnic.length < 5) {
+      alert("Please enter a valid CNIC for the receiver.")
+      return
+    }
+
+    setIsProcessing(true)
+    try {
+      const { error } = await supabase
+        .from('customer_transactions')
+        .update({ 
+          status: 'Refunded_To_Customer',
+          refund_cnic: refundCnic
+        })
+        .eq('id', selectedTx.id)
+
+      if (error) throw error
+      
+      setExceptions(exceptions.filter((tx) => tx.id !== selectedTx.id))
+      setIsRefundDialogOpen(false)
+      alert(`Transaction successfully marked as Refunded.`)
+    } catch (error) {
+      console.error("Error refunding transaction:", error)
+      alert("Failed to refund transaction.")
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleRollOver = async (id: string, amount: number) => {
+    const confirmRoll = window.confirm(`Are you sure you want to roll over PKR ${amount.toFixed(2)} to a new bill? This will clear it from the exceptions vault.`)
+    if (confirmRoll) {
+      setIsProcessing(true)
       try {
         const { error } = await supabase
           .from('customer_transactions')
-          .update({ status: 'Refunded_To_Customer' })
+          .update({ status: 'Rolled_Over_To_New_Bill' })
           .eq('id', id)
 
         if (error) throw error
         
-        // Remove from local state
         setExceptions(exceptions.filter((tx) => tx.id !== id))
-        alert(`Transaction successfully marked as Refunded.`)
+        alert(`Transaction successfully rolled over. Please record the new combined bill manually in the Record Transaction tab.`)
       } catch (error) {
-        console.error("Error refunding transaction:", error)
-        alert("Failed to refund transaction.")
+        console.error("Error rolling over transaction:", error)
+        alert("Failed to roll over transaction.")
+      } finally {
+        setIsProcessing(false)
       }
     }
   }
 
   return (
+    <>
     <div className="w-full max-w-5xl mx-auto mt-8 bg-white dark:bg-zinc-950 p-6 rounded-xl shadow border animate-in fade-in duration-500">
       <div className="mb-6 flex justify-between items-center">
         <div>
@@ -121,13 +175,23 @@ export function ExceptionQueue() {
                   <TableCell className="text-right font-bold text-lg text-primary">
                     PKR {Number(tx.total_cash_collected).toFixed(2)}
                   </TableCell>
-                  <TableCell className="text-center space-x-2">
+                  <TableCell className="text-center space-x-2 whitespace-nowrap">
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleRefund(tx.id, tx.total_cash_collected)}
+                      onClick={() => openRefundDialog(tx)}
+                      disabled={isProcessing}
                     >
                       Refund Customer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRollOver(tx.id, tx.total_cash_collected)}
+                      disabled={isProcessing}
+                      className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+                    >
+                      Roll Over
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -137,5 +201,48 @@ export function ExceptionQueue() {
         </Table>
       </div>
     </div>
+
+    {/* Refund Dialog */}
+    <Dialog open={isRefundDialogOpen} onOpenChange={setIsRefundDialogOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Process Cash Refund</DialogTitle>
+          <DialogDescription>
+            You are about to hand back physical cash to the customer. Please enter their CNIC for security auditing.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {selectedTx && (
+          <div className="grid gap-4 py-4">
+            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+              <p className="text-sm font-medium">Customer: <span className="font-bold text-foreground">{selectedTx.customer_name}</span></p>
+              <p className="text-sm font-medium">Phone: <span className="font-mono text-muted-foreground">{selectedTx.phone_number}</span></p>
+              <p className="text-sm font-medium">Amount to Refund: <span className="font-bold text-destructive">PKR {Number(selectedTx.total_cash_collected).toFixed(2)}</span></p>
+            </div>
+            
+            <div className="grid gap-2">
+              <label className="text-sm font-bold text-foreground">Receiver's CNIC <span className="text-destructive">*</span></label>
+              <Input 
+                value={refundCnic}
+                onChange={(e) => setRefundCnic(e.target.value)}
+                placeholder="e.g. 42101-1234567-1"
+                required
+              />
+              <p className="text-xs text-muted-foreground">Required to log who collected the cash.</p>
+            </div>
+          </div>
+        )}
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsRefundDialogOpen(false)} disabled={isProcessing}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleRefundSubmit} disabled={isProcessing || !refundCnic}>
+            {isProcessing ? "Processing..." : "Confirm & Refund Cash"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

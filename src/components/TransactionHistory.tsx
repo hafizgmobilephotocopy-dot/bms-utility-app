@@ -264,6 +264,7 @@ export function TransactionHistory() {
                 <option value="Failed">Failed</option>
                 <option value="Reversed">Reversed</option>
                 <option value="Refunded_To_Customer">Refunded To Customer</option>
+                <option value="Rolled_Over_To_New_Bill">Rolled Over To New Bill</option>
               </select>
             </div>
 
