@@ -9,6 +9,7 @@ import { UpcomingBills } from "@/components/UpcomingBills"
 import { DeletedTransactions } from "@/components/DeletedTransactions"
 import { CompletedTransactions } from "@/components/CompletedTransactions"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
@@ -19,22 +20,27 @@ export default function Dashboard() {
     exceptionsVault: 0
   })
 
+  const todayStr = new Date().toISOString().split('T')[0]
+  const [kpiStartDate, setKpiStartDate] = useState(todayStr)
+  const [kpiEndDate, setKpiEndDate] = useState(todayStr)
+
   useEffect(() => {
     fetchKPIs()
-  }, [])
+  }, [kpiStartDate, kpiEndDate])
 
   async function fetchKPIs() {
     try {
-      // Get today's start and end timestamps in local time
-      const startOfDay = new Date()
+      // Get selected start and end timestamps in local time
+      const startOfDay = new Date(kpiStartDate)
       startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date()
+      
+      const endOfDay = new Date(kpiEndDate)
       endOfDay.setHours(23, 59, 59, 999)
 
       const startIso = startOfDay.toISOString()
       const endIso = endOfDay.toISOString()
 
-      // Fetch today's transactions for cash and service fee (exclude deleted)
+      // Fetch transactions for cash and service fee (exclude deleted)
       const { data: todayTxs, error: errorToday } = await supabase
         .from('customer_transactions')
         .select('total_cash_collected, service_fee, status')
@@ -153,23 +159,44 @@ export default function Dashboard() {
 
         {/* Dashboard KPIs shown on multiple relevant tabs */}
         {(view === "transactions" || view === "upcoming" || view === "exceptions") && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Pending Bill Cash</p>
-              <p className="text-3xl font-bold mt-2">PKR {kpis.totalCashToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-            </div>
-            <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">
-              <p className="text-sm text-primary font-medium uppercase tracking-wider">Today's Service Fee Revenue</p>
-              <p className="text-3xl font-bold mt-2 text-primary">PKR {kpis.serviceFeeToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-            </div>
-            <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm flex justify-between items-center">
-              <div>
-                <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
-                <p className="text-3xl font-bold mt-2 text-destructive">PKR {kpis.exceptionsVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
+              <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Filter Metrics By Date:</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Input 
+                  type="date" 
+                  value={kpiStartDate} 
+                  onChange={(e) => setKpiStartDate(e.target.value)}
+                  className="max-w-[150px]"
+                />
+                <span className="text-muted-foreground">to</span>
+                <Input 
+                  type="date" 
+                  value={kpiEndDate} 
+                  onChange={(e) => setKpiEndDate(e.target.value)}
+                  className="max-w-[150px]"
+                />
               </div>
-              <Button variant="destructive" size="sm" onClick={() => setView("exceptions")}>
-                View
-              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Pending Bill Cash</p>
+                <p className="text-3xl font-bold mt-2">PKR {kpis.totalCashToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+              </div>
+              <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">
+                <p className="text-sm text-primary font-medium uppercase tracking-wider">Service Fee Revenue</p>
+                <p className="text-3xl font-bold mt-2 text-primary">PKR {kpis.serviceFeeToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+              </div>
+              <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
+                  <p className="text-3xl font-bold mt-2 text-destructive">PKR {kpis.exceptionsVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                </div>
+                <Button variant="destructive" size="sm" onClick={() => setView("exceptions")}>
+                  View
+                </Button>
+              </div>
             </div>
           </div>
         )}
