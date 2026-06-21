@@ -6,11 +6,12 @@ import { NewTransactionForm } from "@/components/NewTransactionForm"
 import { TransactionHistory } from "@/components/TransactionHistory"
 import { ExceptionQueue } from "@/components/ExceptionQueue"
 import { UpcomingBills } from "@/components/UpcomingBills"
+import { DeletedTransactions } from "@/components/DeletedTransactions"
 import { Button } from "@/components/ui/button"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted">("transactions")
   const [kpis, setKpis] = useState({
     totalCashToday: 0,
     serviceFeeToday: 0,
@@ -32,12 +33,13 @@ export default function Dashboard() {
       const startIso = startOfDay.toISOString()
       const endIso = endOfDay.toISOString()
 
-      // Fetch today's transactions for cash and service fee
+      // Fetch today's transactions for cash and service fee (exclude deleted)
       const { data: todayTxs, error: errorToday } = await supabase
         .from('customer_transactions')
         .select('total_cash_collected, service_fee')
         .gte('date_collected', startIso)
         .lte('date_collected', endIso)
+        .eq('is_deleted', false)
 
       if (errorToday) throw errorToday
 
@@ -55,6 +57,7 @@ export default function Dashboard() {
         .from('customer_transactions')
         .select('total_cash_collected')
         .in('status', ['Gateway_Failed', 'Failed', 'Reversed'])
+        .eq('is_deleted', false)
 
       if (errorExceptions) throw errorExceptions
 
@@ -120,6 +123,13 @@ export default function Dashboard() {
               >
                 Transaction History
               </Button>
+              <Button
+                variant={view === "deleted" ? "default" : "ghost"}
+                onClick={() => setView("deleted")}
+                className="font-medium text-destructive hover:text-destructive"
+              >
+                Deleted Bills
+              </Button>
             </div>
             <form action={logout}>
               <Button variant="outline" type="submit" className="font-medium border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
@@ -181,6 +191,12 @@ export default function Dashboard() {
         {view === "history" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <TransactionHistory />
+          </div>
+        )}
+
+        {view === "deleted" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <DeletedTransactions />
           </div>
         )}
       </div>

@@ -29,6 +29,7 @@ export function UpcomingBills() {
         .from('transaction_history_view')
         .select('*')
         .eq('status', 'Pending_Processing')
+        .eq('is_deleted', false)
         .not('due_date', 'is', null)
         .order('due_date', { ascending: true })
 

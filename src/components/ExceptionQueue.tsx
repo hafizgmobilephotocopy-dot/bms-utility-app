@@ -29,6 +29,7 @@ export function ExceptionQueue() {
         .from('transaction_history_view')
         .select('*')
         .in('status', ['Gateway_Failed', 'Failed', 'Reversed'])
+        .eq('is_deleted', false)
         .order('date_collected', { ascending: false })
 
       if (error) throw error

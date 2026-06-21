@@ -47,6 +47,7 @@ export function TransactionHistory() {
       const { data, error } = await supabase
         .from('transaction_history_view')
         .select('*')
+        .eq('is_deleted', false)
         .order('date_collected', { ascending: false })
 
       if (error) throw error
@@ -92,6 +93,31 @@ export function TransactionHistory() {
       alert("Failed to update transaction.")
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  async function handleDeleteTransaction(id: string) {
+    const confirmDelete = window.confirm("Are you sure you want to delete this transaction?")
+    if (confirmDelete) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        const { error } = await supabase
+          .from('customer_transactions')
+          .update({
+            is_deleted: true,
+            deleted_by: user?.id || null,
+            deleted_at: new Date().toISOString()
+          })
+          .eq('id', id)
+
+        if (error) throw error
+        
+        fetchTransactions()
+      } catch (error) {
+        console.error("Error deleting transaction:", error)
+        alert("Failed to delete transaction.")
+      }
     }
   }
 
@@ -196,9 +222,14 @@ export function TransactionHistory() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openUpdateDialog(t)}>
-                          Update
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openUpdateDialog(t)}>
+                            Update
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteTransaction(t.id)}>
+                            Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
