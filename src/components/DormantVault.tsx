@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export function ExceptionQueue() {
+export function DormantVault() {
   const [exceptions, setExceptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -43,7 +43,7 @@ export function ExceptionQueue() {
       const { data, error } = await supabase
         .from('transaction_history_view')
         .select('*')
-        .in('status', ['Gateway_Failed', 'Failed', 'Reversed'])
+        .eq('status', 'Held_Dormant')
         .eq('is_deleted', false)
         .order('date_collected', { ascending: false })
 
@@ -115,23 +115,23 @@ export function ExceptionQueue() {
     }
   }
 
-  const handleMoveToDormant = async (id: string) => {
-    const confirmMove = window.confirm(`Move this bill to the Dormant Vault? It will be separated from your daily active exceptions.`)
-    if (confirmMove) {
+  const handleMarkProcessed = async (id: string) => {
+    const confirmPay = window.confirm(`Mark this bill as Processed Successfully?`)
+    if (confirmPay) {
       setIsProcessing(true)
       try {
         const { error } = await supabase
           .from('customer_transactions')
-          .update({ status: 'Held_Dormant' })
+          .update({ status: 'Processed_Successfully' })
           .eq('id', id)
 
         if (error) throw error
         
         setExceptions(exceptions.filter((tx) => tx.id !== id))
-        alert(`Transaction successfully moved to Dormant Vault.`)
+        alert(`Transaction successfully marked as processed.`)
       } catch (error) {
-        console.error("Error moving transaction:", error)
-        alert("Failed to move transaction to Dormant Vault.")
+        console.error("Error updating transaction:", error)
+        alert("Failed to mark transaction as processed.")
       } finally {
         setIsProcessing(false)
       }
@@ -143,19 +143,19 @@ export function ExceptionQueue() {
     <div className="w-full max-w-5xl mx-auto mt-8 bg-white dark:bg-zinc-950 p-6 rounded-xl shadow border animate-in fade-in duration-500">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-destructive">Exceptions Queue (Cash Vault)</h2>
+          <h2 className="text-2xl font-bold text-orange-600">Dormant Bills Vault</h2>
           <p className="text-muted-foreground mt-1">
-            Bills that failed to process. You hold the physical cash for these and must take action.
+            Failed bills that you are holding onto for a long time. They are separated from your daily active exceptions.
           </p>
         </div>
-        <Badge variant="destructive" className="text-sm px-3 py-1">
-          {exceptions.length} Action Required
+        <Badge variant="outline" className="text-sm px-3 py-1 border-orange-200 text-orange-700 bg-orange-50">
+          {exceptions.length} Dormant Bills
         </Badge>
       </div>
 
       <div className="border rounded-md">
         <Table>
-          <TableCaption>Failed or reversed transactions requiring immediate attention.</TableCaption>
+          <TableCaption>Bills held dormant until further action.</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
@@ -200,35 +200,34 @@ export function ExceptionQueue() {
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex flex-col gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedTx(tx)
-                            setIsRefundDialogOpen(true)
-                          }}
-                          disabled={isProcessing}
-                        >
-                          Refund Cash
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleRollOver(tx.id, tx.total_cash_collected)}
-                          disabled={isProcessing}
-                        >
-                          Roll Over
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-muted-foreground hover:bg-muted"
-                          onClick={() => handleMoveToDormant(tx.id)}
-                          disabled={isProcessing}
-                        >
-                          Move to Dormant
-                        </Button>
-                      </div>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={() => handleMarkProcessed(tx.id)}
+                        disabled={isProcessing}
+                      >
+                        Paid
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedTx(tx)
+                          setIsRefundDialogOpen(true)
+                        }}
+                        disabled={isProcessing}
+                      >
+                        Refund
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleRollOver(tx.id, tx.total_cash_collected)}
+                        disabled={isProcessing}
+                      >
+                        Roll Over
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

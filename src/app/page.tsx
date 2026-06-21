@@ -8,16 +8,18 @@ import { ExceptionQueue } from "@/components/ExceptionQueue"
 import { UpcomingBills } from "@/components/UpcomingBills"
 import { DeletedTransactions } from "@/components/DeletedTransactions"
 import { CompletedTransactions } from "@/components/CompletedTransactions"
+import { DormantVault } from "@/components/DormantVault"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted" | "completed">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted" | "completed" | "dormant">("transactions")
   const [kpis, setKpis] = useState({
     totalCashToday: 0,
     serviceFeeToday: 0,
-    exceptionsVault: 0
+    exceptionsVault: 0,
+    dormantVault: 0
   })
 
   const todayStr = new Date().toISOString().split('T')[0]
@@ -76,7 +78,7 @@ export default function Dashboard() {
         })
       }
 
-      // Fetch exceptions vault (sum of total_cash_collected for Failed/Reversed/Gateway_Failed)
+      // Fetch exceptions vault (sum of total_cash_collected for Gateway_Failed/Failed/Reversed)
       const { data: exceptionTxs, error: errorExceptions } = await supabase
         .from('customer_transactions')
         .select('total_cash_collected')
@@ -92,10 +94,27 @@ export default function Dashboard() {
         })
       }
 
+      // Fetch dormant vault (sum of total_cash_collected for Held_Dormant)
+      const { data: dormantTxs, error: errorDormant } = await supabase
+        .from('customer_transactions')
+        .select('total_cash_collected')
+        .eq('status', 'Held_Dormant')
+        .eq('is_deleted', false)
+
+      if (errorDormant) throw errorDormant
+
+      let totalDormant = 0
+      if (dormantTxs) {
+        dormantTxs.forEach(tx => {
+          totalDormant += Number(tx.total_cash_collected || 0)
+        })
+      }
+
       setKpis({
         totalCashToday: totalCash,
         serviceFeeToday: totalFee,
-        exceptionsVault: totalExceptions
+        exceptionsVault: totalExceptions,
+        dormantVault: totalDormant
       })
     } catch (error) {
       console.error("Error fetching KPIs:", error)
@@ -171,7 +190,7 @@ export default function Dashboard() {
         </header>
 
         {/* Dashboard KPIs shown on multiple relevant tabs */}
-        {(view === "transactions" || view === "upcoming" || view === "exceptions") && (
+        {(view === "transactions" || view === "upcoming" || view === "exceptions" || view === "dormant") && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
               <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Filter Revenue By Date:</span>
@@ -192,7 +211,7 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
                 <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Pending Bill Cash</p>
                 <p className="text-3xl font-bold mt-2">PKR {kpis.totalCashToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
@@ -201,13 +220,22 @@ export default function Dashboard() {
                 <p className="text-sm text-primary font-medium uppercase tracking-wider">Service Fee Revenue</p>
                 <p className="text-3xl font-bold mt-2 text-primary">PKR {kpis.serviceFeeToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
               </div>
-              <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm flex justify-between items-center">
+              <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm flex flex-col justify-between">
                 <div>
                   <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
-                  <p className="text-3xl font-bold mt-2 text-destructive">PKR {kpis.exceptionsVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                  <p className="text-2xl font-bold mt-2 text-destructive">PKR {kpis.exceptionsVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                 </div>
-                <Button variant="destructive" size="sm" onClick={() => setView("exceptions")}>
-                  View
+                <Button variant="destructive" size="sm" className="mt-4 w-full" onClick={() => setView("exceptions")}>
+                  View Active
+                </Button>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 p-6 rounded-xl border shadow-sm flex flex-col justify-between">
+                <div>
+                  <p className="text-sm text-orange-600 dark:text-orange-500 font-medium uppercase tracking-wider">Dormant Vault</p>
+                  <p className="text-2xl font-bold mt-2 text-orange-600 dark:text-orange-500">PKR {kpis.dormantVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                </div>
+                <Button variant="outline" size="sm" className="mt-4 w-full border-orange-200 text-orange-700 hover:bg-orange-100" onClick={() => setView("dormant")}>
+                  View Dormant
                 </Button>
               </div>
             </div>
@@ -229,6 +257,12 @@ export default function Dashboard() {
         {view === "exceptions" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <ExceptionQueue />
+          </div>
+        )}
+
+        {view === "dormant" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <DormantVault />
           </div>
         )}
 
