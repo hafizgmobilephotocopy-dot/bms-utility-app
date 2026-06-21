@@ -40,26 +40,38 @@ export default function Dashboard() {
       const startIso = startOfDay.toISOString()
       const endIso = endOfDay.toISOString()
 
-      // Fetch transactions for cash and service fee (exclude deleted)
-      const { data: todayTxs, error: errorToday } = await supabase
+      // 1. Fetch Service Fee Revenue for selected dates
+      const { data: revTxs, error: errorRev } = await supabase
         .from('customer_transactions')
-        .select('total_cash_collected, service_fee, status')
+        .select('service_fee, status')
         .gte('date_collected', startIso)
         .lte('date_collected', endIso)
         .eq('is_deleted', false)
 
-      if (errorToday) throw errorToday
+      if (errorRev) throw errorRev
 
-      let totalCash = 0
       let totalFee = 0
-      if (todayTxs) {
-        todayTxs.forEach(tx => {
-          if (tx.status === 'Pending_Processing') {
-            totalCash += Number(tx.total_cash_collected || 0)
-          }
+      if (revTxs) {
+        revTxs.forEach(tx => {
           if (tx.status !== 'Refunded_To_Customer' && tx.status !== 'Rolled_Over_To_New_Bill') {
             totalFee += Number(tx.service_fee || 0)
           }
+        })
+      }
+
+      // 2. Fetch Pending Bill Cash (Global, not date filtered)
+      const { data: pendingTxs, error: errorPending } = await supabase
+        .from('customer_transactions')
+        .select('total_cash_collected')
+        .eq('status', 'Pending_Processing')
+        .eq('is_deleted', false)
+
+      if (errorPending) throw errorPending
+
+      let totalCash = 0
+      if (pendingTxs) {
+        pendingTxs.forEach(tx => {
+          totalCash += Number(tx.total_cash_collected || 0)
         })
       }
 
@@ -161,7 +173,7 @@ export default function Dashboard() {
         {(view === "transactions" || view === "upcoming" || view === "exceptions") && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
-              <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Filter Metrics By Date:</span>
+              <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Filter Revenue By Date:</span>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Input 
                   type="date" 
