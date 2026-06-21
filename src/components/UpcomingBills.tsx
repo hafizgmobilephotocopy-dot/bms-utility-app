@@ -124,7 +124,7 @@ export function UpcomingBills() {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="border rounded-md">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>

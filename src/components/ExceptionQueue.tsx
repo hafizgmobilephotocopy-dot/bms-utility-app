@@ -141,16 +141,23 @@ export function ExceptionQueue() {
   return (
     <>
     <div className="w-full max-w-5xl mx-auto mt-8 bg-white dark:bg-zinc-950 p-6 rounded-xl shadow border animate-in fade-in duration-500">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-destructive">Exceptions Queue (Cash Vault)</h2>
           <p className="text-muted-foreground mt-1">
             Bills that failed to process. You hold the physical cash for these and must take action.
           </p>
         </div>
-        <Badge variant="destructive" className="text-sm px-3 py-1">
-          {exceptions.length} Action Required
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant="destructive" className="text-sm px-3 py-1 flex flex-col items-center">
+            <span>Reversed</span>
+            <span className="font-bold">PKR {exceptions.filter(e => e.status === 'Reversed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
+          </Badge>
+          <Badge variant="destructive" className="text-sm px-3 py-1 flex flex-col items-center bg-red-600 hover:bg-red-700">
+            <span>Failed</span>
+            <span className="font-bold">PKR {exceptions.filter(e => e.status === 'Failed' || e.status === 'Gateway_Failed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
+          </Badge>
+        </div>
       </div>
 
       <div className="border rounded-md">
@@ -163,7 +170,7 @@ export function ExceptionQueue() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Bill Amount</TableHead>
               <TableHead className="text-right font-bold">Total Cash to Refund</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="text-center sticky right-0 bg-muted/30 z-10 border-l">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -198,7 +205,7 @@ export function ExceptionQueue() {
                   <TableCell className="text-right font-bold text-lg text-primary">
                     PKR {Number(tx.total_cash_collected).toFixed(2)}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center sticky right-0 bg-white dark:bg-zinc-950 z-10 border-l shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)]">
                     <div className="flex flex-col gap-2">
                         <Button 
                           variant="outline" 

@@ -128,14 +128,9 @@ export function TransactionHistory() {
   // Extract unique utility companies for the filter dropdown
   const utilities = ["All", ...Array.from(new Set(transactions.map(t => t.utility_company)))]
 
-  // Filter the transactions based on search term and utility filter
+  // Filter the transactions based on utility filter
   const filteredTransactions = transactions.filter(t => {
-    const matchesSearch = 
-      t.consumer_number.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (t.customer_name && t.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesUtility = filterUtility === "All" || t.utility_company === filterUtility
-
-    return matchesSearch && matchesUtility
+    return filterUtility === "All" || t.utility_company === filterUtility
   })
 
   return (
@@ -150,15 +145,7 @@ export function TransactionHistory() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="p-4 flex flex-col sm:flex-row gap-4 bg-muted/10 border-b border-muted/50">
-            <div className="flex-1">
-              <Input 
-                placeholder="Search by customer name or consumer number..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md bg-white dark:bg-zinc-900"
-              />
-            </div>
+          <div className="p-4 flex flex-col sm:flex-row gap-4 bg-muted/10 border-b border-muted/50 justify-end">
             <div>
               <select 
                 value={filterUtility}
@@ -172,7 +159,7 @@ export function TransactionHistory() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="border rounded-md">
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
@@ -183,7 +170,7 @@ export function TransactionHistory() {
                   <TableHead className="text-right">Total Cash</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="text-right sticky right-0 bg-muted/30 z-10 border-l">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -231,7 +218,7 @@ export function TransactionHistory() {
                           {t.status.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right sticky right-0 bg-white dark:bg-zinc-950 z-10 border-l shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)]">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" onClick={() => openUpdateDialog(t)}>
                             Update

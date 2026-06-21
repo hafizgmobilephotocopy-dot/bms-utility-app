@@ -9,12 +9,13 @@ import { UpcomingBills } from "@/components/UpcomingBills"
 import { DeletedTransactions } from "@/components/DeletedTransactions"
 import { CompletedTransactions } from "@/components/CompletedTransactions"
 import { DormantVault } from "@/components/DormantVault"
+import { TrackingTab } from "@/components/TrackingTab"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming" | "deleted" | "completed" | "dormant">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "tracking" | "exceptions" | "upcoming" | "deleted" | "completed" | "dormant">("transactions")
   const [kpis, setKpis] = useState({
     totalCashToday: 0,
     serviceFeeToday: 0,
@@ -159,12 +160,11 @@ export default function Dashboard() {
               >
                 Exceptions Queue
               </Button>
-              <Button
-                variant={view === "history" ? "default" : "ghost"}
-                onClick={() => setView("history")}
-                className="font-medium"
-              >
+              <Button variant={view === "history" ? "default" : "ghost"} onClick={() => setView("history")} className="font-medium">
                 Transaction History
+              </Button>
+              <Button variant={view === "tracking" ? "default" : "ghost"} onClick={() => setView("tracking")} className="font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                Tracking Center
               </Button>
               <Button
                 variant={view === "completed" ? "default" : "ghost"}
@@ -277,6 +277,12 @@ export default function Dashboard() {
         {view === "history" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <TransactionHistory />
+          </div>
+        )}
+
+        {view === "tracking" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <TrackingTab />
           </div>
         )}
 

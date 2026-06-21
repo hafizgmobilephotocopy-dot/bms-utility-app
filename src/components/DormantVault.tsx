@@ -163,7 +163,7 @@ export function DormantVault() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Bill Amount</TableHead>
               <TableHead className="text-right font-bold">Total Cash to Refund</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="text-center sticky right-0 bg-muted/30 z-10 border-l">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -198,7 +198,7 @@ export function DormantVault() {
                   <TableCell className="text-right font-bold text-lg text-primary">
                     PKR {Number(tx.total_cash_collected).toFixed(2)}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center sticky right-0 bg-white dark:bg-zinc-950 z-10 border-l shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)]">
                     <div className="flex flex-col gap-2">
                       <Button 
                         variant="default" 
