@@ -40,6 +40,7 @@ const formSchema = z.object({
     message: "Service fee cannot be negative.",
   }),
   isAfterDueDate: z.boolean().default(false),
+  dueDate: z.string().optional(),
 })
 
 export function NewTransactionForm() {
@@ -55,6 +56,7 @@ export function NewTransactionForm() {
       billAmount: 0,
       serviceFee: 0,
       isAfterDueDate: false,
+      dueDate: "",
     },
   })
 
@@ -100,7 +102,8 @@ export function NewTransactionForm() {
           service_fee: values.serviceFee,
           status: 'Pending_Processing',
           recorded_by: user?.id || null,
-          is_after_due_date: values.isAfterDueDate
+          is_after_due_date: values.isAfterDueDate,
+          due_date: values.dueDate || null
         })
 
       if (transactionError) throw transactionError
@@ -226,6 +229,20 @@ export function NewTransactionForm() {
                       Check this if the customer brought the bill after its due date.
                     </p>
                   </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bill Due Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

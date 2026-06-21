@@ -1,14 +1,79 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 import { NewTransactionForm } from "@/components/NewTransactionForm"
 import { TransactionHistory } from "@/components/TransactionHistory"
 import { ExceptionQueue } from "@/components/ExceptionQueue"
+import { UpcomingBills } from "@/components/UpcomingBills"
 import { Button } from "@/components/ui/button"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "exceptions" | "upcoming">("transactions")
+  const [kpis, setKpis] = useState({
+    totalCashToday: 0,
+    serviceFeeToday: 0,
+    exceptionsVault: 0
+  })
+
+  useEffect(() => {
+    fetchKPIs()
+  }, [])
+
+  async function fetchKPIs() {
+    try {
+      // Get today's start and end timestamps in local time
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date()
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const startIso = startOfDay.toISOString()
+      const endIso = endOfDay.toISOString()
+
+      // Fetch today's transactions for cash and service fee
+      const { data: todayTxs, error: errorToday } = await supabase
+        .from('customer_transactions')
+        .select('total_cash_collected, service_fee')
+        .gte('date_collected', startIso)
+        .lte('date_collected', endIso)
+
+      if (errorToday) throw errorToday
+
+      let totalCash = 0
+      let totalFee = 0
+      if (todayTxs) {
+        todayTxs.forEach(tx => {
+          totalCash += Number(tx.total_cash_collected || 0)
+          totalFee += Number(tx.service_fee || 0)
+        })
+      }
+
+      // Fetch exceptions vault (sum of total_cash_collected for Failed/Reversed/Gateway_Failed)
+      const { data: exceptionTxs, error: errorExceptions } = await supabase
+        .from('customer_transactions')
+        .select('total_cash_collected')
+        .in('status', ['Gateway_Failed', 'Failed', 'Reversed'])
+
+      if (errorExceptions) throw errorExceptions
+
+      let totalExceptions = 0
+      if (exceptionTxs) {
+        exceptionTxs.forEach(tx => {
+          totalExceptions += Number(tx.total_cash_collected || 0)
+        })
+      }
+
+      setKpis({
+        totalCashToday: totalCash,
+        serviceFeeToday: totalFee,
+        exceptionsVault: totalExceptions
+      })
+    } catch (error) {
+      console.error("Error fetching KPIs:", error)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 p-6">
@@ -19,7 +84,7 @@ export default function Dashboard() {
           </h1>
           
           <div className="flex items-center gap-4 flex-wrap justify-center">
-            <div className="flex gap-2 bg-muted p-1 rounded-lg">
+            <div className="flex gap-2 flex-wrap bg-muted p-1 rounded-lg">
               <Button
                 variant={view === "expenses" ? "default" : "ghost"}
                 onClick={() => setView("expenses")}
@@ -32,7 +97,21 @@ export default function Dashboard() {
                 onClick={() => setView("transactions")}
                 className="font-medium"
               >
-                Customer Transactions
+                Record Transaction
+              </Button>
+              <Button
+                variant={view === "upcoming" ? "default" : "ghost"}
+                onClick={() => setView("upcoming")}
+                className="font-medium"
+              >
+                Upcoming Bills
+              </Button>
+              <Button
+                variant={view === "exceptions" ? "default" : "ghost"}
+                onClick={() => setView("exceptions")}
+                className="font-medium"
+              >
+                Exceptions Queue
               </Button>
               <Button
                 variant={view === "history" ? "default" : "ghost"}
@@ -50,26 +129,43 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {view === "transactions" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* KPI Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
-                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Today's Total Cash</p>
-                <p className="text-3xl font-bold mt-2">PKR 24,500.00</p>
-              </div>
-              <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">
-                <p className="text-sm text-primary font-medium uppercase tracking-wider">Today's Service Fee Revenue</p>
-                <p className="text-3xl font-bold mt-2 text-primary">PKR 450.00</p>
-              </div>
-              <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm">
-                <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
-                <p className="text-3xl font-bold mt-2 text-destructive">PKR 6,800.50</p>
-              </div>
+        {/* Dashboard KPIs shown on multiple relevant tabs */}
+        {(view === "transactions" || view === "upcoming" || view === "exceptions") && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border shadow-sm">
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Today's Total Cash</p>
+              <p className="text-3xl font-bold mt-2">PKR {kpis.totalCashToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
             </div>
+            <div className="bg-primary/10 border-primary/20 p-6 rounded-xl border shadow-sm">
+              <p className="text-sm text-primary font-medium uppercase tracking-wider">Today's Service Fee Revenue</p>
+              <p className="text-3xl font-bold mt-2 text-primary">PKR {kpis.serviceFeeToday.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+            </div>
+            <div className="bg-destructive/10 border-destructive/20 p-6 rounded-xl border shadow-sm flex justify-between items-center">
+              <div>
+                <p className="text-sm text-destructive font-medium uppercase tracking-wider">Exceptions Vault</p>
+                <p className="text-3xl font-bold mt-2 text-destructive">PKR {kpis.exceptionsVault.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+              </div>
+              <Button variant="destructive" size="sm" onClick={() => setView("exceptions")}>
+                View
+              </Button>
+            </div>
+          </div>
+        )}
 
+        {view === "transactions" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <NewTransactionForm />
-            
+          </div>
+        )}
+
+        {view === "upcoming" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <UpcomingBills />
+          </div>
+        )}
+
+        {view === "exceptions" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <ExceptionQueue />
           </div>
         )}
