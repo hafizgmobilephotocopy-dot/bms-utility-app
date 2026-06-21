@@ -115,8 +115,8 @@ export function TrackingTab() {
                           day: 'numeric'
                         })}
                       </TableCell>
-                      <TableCell>
-                        <div className="max-w-[120px]">
+                      <TableCell className="max-w-[120px] overflow-hidden">
+                        <div>
                           <p className="font-semibold truncate" title={t.customer_name}>{t.customer_name}</p>
                           <p className="text-xs text-muted-foreground">{t.phone_number}</p>
                         </div>
@@ -126,7 +126,7 @@ export function TrackingTab() {
                       </TableCell>
                       <TableCell className="font-mono text-xs whitespace-nowrap">{t.consumer_number}</TableCell>
                       <TableCell className="text-right font-bold text-primary whitespace-nowrap">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground truncate max-w-[100px]" title={t.manager_email}>{t.manager_email?.split('@')[0] || 'Unknown'}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground truncate max-w-[100px] overflow-hidden" title={t.manager_email}>{t.manager_email?.split('@')[0] || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge variant={
                           t.status === 'Paid' ? 'default' : 
