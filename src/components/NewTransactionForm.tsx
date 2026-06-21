@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -24,9 +23,7 @@ const formSchema = z.object({
   customerName: z.string().min(2, {
     message: "Customer name must be at least 2 characters.",
   }),
-  phoneNumber: z.string().min(10, {
-    message: "Valid phone number required.",
-  }),
+  phoneNumber: z.string().optional(),
   utilityCompany: z.string().min(2, {
     message: "Utility company name is required.",
   }),
@@ -45,6 +42,8 @@ const formSchema = z.object({
 
 export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [totalCashOwed, setTotalCashOwed] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -60,7 +59,6 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   })
 
-  // Watch for changes in bill amount and service fee to calculate total
   const billAmount = form.watch("billAmount")
   const serviceFee = form.watch("serviceFee")
 
@@ -70,49 +68,23 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     setTotalCashOwed(amount + fee)
   }, [billAmount, serviceFee])
 
-  const phoneNumber = form.watch("phoneNumber")
-
-  useEffect(() => {
-    if (phoneNumber && phoneNumber.length >= 10) {
-      const fetchCustomer = async () => {
-        const { data } = await supabase
-          .from('customers')
-          .select('name')
-          .eq('phone_number', phoneNumber)
-          .single()
-        
-        if (data && data.name) {
-          // Only auto-fill if they haven't manually typed a long name yet, or if it's currently empty
-          // Actually, it's safer to just set it so they see the linked profile name.
-          form.setValue('customerName', data.name)
-        }
-      }
-      fetchCustomer()
-    }
-  }, [phoneNumber, form])
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
     setMessage(null)
     try {
       const { data: { user } } = await supabase.auth.getUser()
 
-      // 1. Upsert customer
+      // Always INSERT a new customer record — customer_id (UUID) is the true unique key.
+      // Phone number is just an optional contact note; same phone can belong to many people.
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
-        .upsert(
-          { name: values.customerName, phone_number: values.phoneNumber },
-          { onConflict: 'phone_number' }
-        )
+        .insert({ name: values.customerName, phone_number: values.phoneNumber || null })
         .select()
         .single()
 
       if (customerError) throw customerError
 
-      // 2. Insert transaction
+      // Insert the transaction linked to the new customer_id
       const { error: transactionError } = await supabase
         .from('customer_transactions')
         .insert({
@@ -129,7 +101,7 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
 
       if (transactionError) throw transactionError
 
-      setMessage({ type: 'success', text: `Transaction successfully saved for ${values.customerName}. Cash to collect: PKR ${totalCashOwed.toFixed(2)}` })
+      setMessage({ type: 'success', text: `Transaction saved for ${values.customerName}. Total cash to collect: PKR ${totalCashOwed.toFixed(2)}` })
       form.reset()
       if (onSuccess) onSuccess()
     } catch (error: any) {
@@ -145,7 +117,7 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
       <CardHeader>
         <CardTitle className="text-2xl">New Customer Transaction</CardTitle>
         <CardDescription>
-          Process a utility bill payment. Enter the exact bill amount and markup.
+          Process a utility bill payment. Enter the exact bill amount and service fee markup.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -157,9 +129,9 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                 name="customerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
+                    <FormLabel>Customer Name <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="e.g. Muhammad Ali" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -170,9 +142,9 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                 name="phoneNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>Phone Number <span className="text-muted-foreground text-xs font-normal">(optional)</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="+1234567890" {...field} />
+                      <Input placeholder="e.g. 0321-1234567" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -185,7 +157,7 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                   <FormItem>
                     <FormLabel>Utility Company</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., K-Electric, SSGC" {...field} />
+                      <Input placeholder="e.g. LESCO, SSGC, PTCL" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -198,7 +170,7 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                   <FormItem>
                     <FormLabel>Consumer / Account Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="123456789" {...field} />
+                      <Input placeholder="e.g. 1234567890" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -268,18 +240,20 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                 </FormItem>
               )}
             />
-            
-            <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between border">
+
+            {/* Total Cash Summary */}
+            <div className="rounded-lg border bg-muted/30 p-4 flex justify-between items-center">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Total Cash to Collect</p>
-                <p className="text-3xl font-bold text-primary">PKR {totalCashOwed.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Total Cash to Collect from Customer</p>
+                <p className="text-2xl font-bold text-primary">PKR {totalCashOwed.toFixed(2)}</p>
               </div>
-              <Button type="submit" size="lg" className="px-8 shadow-md" disabled={isSubmitting}>
-                {isSubmitting ? "Processing..." : "Process Payment"}
+              <Button type="submit" disabled={isSubmitting} size="lg">
+                {isSubmitting ? "Saving..." : "Save Transaction"}
               </Button>
             </div>
+
             {message && (
-              <div className={`p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+              <div className={`rounded-lg p-4 text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
                 {message.text}
               </div>
             )}

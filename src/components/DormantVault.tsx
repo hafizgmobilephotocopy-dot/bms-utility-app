@@ -206,7 +206,7 @@ export function DormantVault() {
                         onClick={() => handleMarkProcessed(tx.id)}
                         disabled={isProcessing}
                       >
-                        Paid
+                        Mark Processed
                       </Button>
                       <Button 
                         variant="outline" 

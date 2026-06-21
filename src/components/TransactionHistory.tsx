@@ -132,9 +132,16 @@ export function TransactionHistory() {
   // Extract unique utility companies for the filter dropdown
   const utilities = ["All", ...Array.from(new Set(transactions.map(t => t.utility_company)))]
 
-  // Filter the transactions based on utility filter
+  // Filter transactions: by utility company AND by search term (name, phone, consumer number, status)
   const filteredTransactions = transactions.filter(t => {
-    return filterUtility === "All" || t.utility_company === filterUtility
+    const matchesUtility = filterUtility === "All" || t.utility_company === filterUtility
+    const term = searchTerm.toLowerCase()
+    const matchesSearch = !term ||
+      (t.customer_name && t.customer_name.toLowerCase().includes(term)) ||
+      (t.phone_number && t.phone_number.includes(term)) ||
+      (t.consumer_number && t.consumer_number.toLowerCase().includes(term)) ||
+      (t.status && t.status.toLowerCase().includes(term))
+    return matchesUtility && matchesSearch
   })
 
   return (
@@ -149,7 +156,15 @@ export function TransactionHistory() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="p-4 flex flex-col sm:flex-row gap-4 bg-muted/10 border-b border-muted/50 justify-end">
+          <div className="p-4 flex flex-col sm:flex-row gap-3 bg-muted/10 border-b border-muted/50">
+            <div className="flex-1">
+              <Input
+                placeholder="Search by name, phone, consumer number, or status..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-white dark:bg-zinc-900"
+              />
+            </div>
             <div>
               <select 
                 value={filterUtility}

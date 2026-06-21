@@ -34,11 +34,12 @@ export function TrackingTab() {
     setLoading(true)
     setSearched(true)
     try {
-      // Query ALL transactions including deleted and completed, matching consumer number or name
+      // Query the view which has customer_name, manager_email etc.
+      // Search by consumer number OR customer name
       const { data, error } = await supabase
-        .from('customer_transactions')
+        .from('transaction_history_view')
         .select('*')
-        .or(`consumer_number.ilike.%${searchTerm}%,customer_name.ilike.%${searchTerm}%`)
+        .or(`consumer_number.ilike.%${searchTerm}%,customer_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%`)
         .order('date_collected', { ascending: false })
         .limit(50)
 
