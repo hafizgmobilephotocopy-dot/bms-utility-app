@@ -170,7 +170,7 @@ export function TransactionHistory() {
                   <TableHead className="text-right">Total Cash</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right sticky right-0 bg-muted/30 z-10 border-l">Action</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -185,9 +185,8 @@ export function TransactionHistory() {
                 ) : (
                   filteredTransactions.map((t) => (
                     <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium whitespace-nowrap">
+                      <TableCell className="font-medium text-xs">
                         {new Date(t.date_collected).toLocaleString(undefined, { 
-                          year: 'numeric', 
                           month: 'short', 
                           day: 'numeric',
                           hour: '2-digit',
@@ -207,7 +206,7 @@ export function TransactionHistory() {
                         )}
                       </TableCell>
                       <TableCell className="font-mono text-sm">{t.consumer_number}</TableCell>
-                      <TableCell className="text-right font-bold text-primary whitespace-nowrap">PKR {Number(t.total_cash_collected).toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold text-primary">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{t.manager_email || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge variant={
@@ -218,13 +217,31 @@ export function TransactionHistory() {
                           {t.status.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right sticky right-0 bg-white dark:bg-zinc-950 z-10 border-l shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)]">
+                      <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openUpdateDialog(t)}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => {
+                              setSelectedTxId(t.id)
+                              setUpdateStatus(t.status)
+                              setUpdateSource(t.payment_source || "")
+                              setUpdateRefId(t.payment_reference_id || "")
+                              setUpdateCnic(t.refund_cnic || "")
+                              setIsDialogOpen(true)
+                            }}
+                          >
                             Update
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteTransaction(t.id)}>
-                            Delete
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDelete(t.id)}
+                            disabled={deletingId === t.id}
+                          >
+                            {deletingId === t.id ? "..." : "Delete"}
                           </Button>
                         </div>
                       </TableCell>
@@ -237,7 +254,6 @@ export function TransactionHistory() {
         </CardContent>
       </Card>
 
-      {/* Update Status Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

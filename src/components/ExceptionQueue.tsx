@@ -148,15 +148,15 @@ export function ExceptionQueue() {
             Bills that failed to process. You hold the physical cash for these and must take action.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Badge variant="destructive" className="text-sm px-3 py-1 flex flex-col items-center">
-            <span>Reversed</span>
-            <span className="font-bold">PKR {exceptions.filter(e => e.status === 'Reversed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
-          </Badge>
-          <Badge variant="destructive" className="text-sm px-3 py-1 flex flex-col items-center bg-red-600 hover:bg-red-700">
-            <span>Failed</span>
-            <span className="font-bold">PKR {exceptions.filter(e => e.status === 'Failed' || e.status === 'Gateway_Failed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
-          </Badge>
+        <div className="flex gap-3">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-lg px-4 py-2 flex flex-col items-center justify-center min-w-[120px]">
+            <span className="text-xs uppercase tracking-wider font-bold mb-1 opacity-80">Reversed</span>
+            <span className="font-bold text-lg leading-none">PKR {exceptions.filter(e => e.status === 'Reversed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
+          </div>
+          <div className="bg-red-600/10 border border-red-600/20 text-red-600 rounded-lg px-4 py-2 flex flex-col items-center justify-center min-w-[120px]">
+            <span className="text-xs uppercase tracking-wider font-bold mb-1 opacity-80">Failed</span>
+            <span className="font-bold text-lg leading-none">PKR {exceptions.filter(e => e.status === 'Failed' || e.status === 'Gateway_Failed').reduce((acc, curr) => acc + Number(curr.total_cash_collected || 0), 0).toLocaleString()}</span>
+          </div>
         </div>
       </div>
 

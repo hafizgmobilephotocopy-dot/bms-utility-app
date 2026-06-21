@@ -91,7 +91,7 @@ export function TrackingTab() {
                   <TableHead className="text-right">Total Cash</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Is Deleted?</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -110,13 +110,10 @@ export function TrackingTab() {
                 ) : (
                   transactions.map((t) => (
                     <TableRow key={t.id} className={`hover:bg-muted/30 transition-colors ${t.is_deleted ? 'opacity-60' : ''}`}>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {new Date(t.date_collected).toLocaleString(undefined, { 
-                          year: 'numeric', 
+                      <TableCell className="font-medium text-xs">
+                        {new Date(t.date_collected).toLocaleDateString(undefined, { 
                           month: 'short', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                          day: 'numeric'
                         })}
                       </TableCell>
                       <TableCell>
@@ -129,7 +126,7 @@ export function TrackingTab() {
                         <Badge variant="secondary" className="font-normal">{t.utility_company}</Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">{t.consumer_number}</TableCell>
-                      <TableCell className="text-right font-bold text-primary whitespace-nowrap">PKR {Number(t.total_cash_collected).toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold text-primary">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{t.manager_email || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge variant={
@@ -140,8 +137,24 @@ export function TrackingTab() {
                           {t.status.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {t.is_deleted ? <Badge variant="destructive" className="font-normal">Deleted</Badge> : <Badge variant="outline" className="font-normal">Active</Badge>}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => {
+                              setSelectedTxId(t.id)
+                              setUpdateStatus(t.status)
+                              setUpdateSource(t.payment_source || "")
+                              setUpdateRefId(t.payment_reference_id || "")
+                              setUpdateCnic(t.refund_cnic || "")
+                              setIsDialogOpen(true)
+                            }}
+                          >
+                            Update
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -151,7 +164,6 @@ export function TrackingTab() {
           </div>
         </CardContent>
       </Card>
-
     </>
   )
 }
