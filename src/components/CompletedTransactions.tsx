@@ -125,7 +125,8 @@ export function CompletedTransactions() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead>Date (PKT)</TableHead>
+                <TableHead>Completed At (PKT)</TableHead>
+                <TableHead>Collected On</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Utility</TableHead>
                 <TableHead>Consumer No.</TableHead>
@@ -142,7 +143,7 @@ export function CompletedTransactions() {
                 </TableRow>
               ) : filteredTransactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No {TABS.find(t => t.key === activeTab)?.label.toLowerCase()} transactions found.
                   </TableCell>
                 </TableRow>
@@ -150,8 +151,16 @@ export function CompletedTransactions() {
                 filteredTransactions.map((t) => (
                   <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium whitespace-nowrap text-xs">
+                      <span className="font-semibold text-foreground">
+                        {formatPKT(t.updated_at, {
+                          year: 'numeric', month: 'short', day: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {formatPKT(t.date_collected, {
-                        year: 'numeric', month: 'short', day: 'numeric',
+                        month: 'short', day: 'numeric',
                         hour: '2-digit', minute: '2-digit'
                       })}
                     </TableCell>
