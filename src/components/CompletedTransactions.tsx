@@ -49,7 +49,7 @@ export function CompletedTransactions() {
         .select('*')
         .in('status', ['Paid', 'Refunded_To_Customer', 'Rolled_Over_To_New_Bill'])
         .eq('is_deleted', false)
-        .order('date_collected', { ascending: false })
+        .order('updated_at', { ascending: false })
 
       if (error) throw error
       setTransactions(data || [])
@@ -63,16 +63,18 @@ export function CompletedTransactions() {
   // Filter by tab status, then by search
   const tabTransactions = transactions.filter(t => t.status === activeTab)
 
-  const filteredTransactions = tabTransactions.filter(t => {
-    const term = searchTerm.toLowerCase()
-    if (!term) return true
-    return (
-      (t.consumer_number && t.consumer_number.toLowerCase().includes(term)) ||
-      (t.customer_name && t.customer_name.toLowerCase().includes(term)) ||
-      (t.phone_number && t.phone_number.includes(term)) ||
-      (t.refund_cnic && t.refund_cnic.includes(term))
-    )
-  })
+  const filteredTransactions = tabTransactions
+    .filter(t => {
+      const term = searchTerm.toLowerCase()
+      if (!term) return true
+      return (
+        (t.consumer_number && t.consumer_number.toLowerCase().includes(term)) ||
+        (t.customer_name && t.customer_name.toLowerCase().includes(term)) ||
+        (t.phone_number && t.phone_number.includes(term)) ||
+        (t.refund_cnic && t.refund_cnic.includes(term))
+      )
+    })
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
   const countFor = (key: TabType) => transactions.filter(t => t.status === key).length
 
