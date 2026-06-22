@@ -13,6 +13,15 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
+// Helper: format a date string in Pakistan Standard Time (PKT, UTC+5)
+function formatPKT(dateStr: string, opts: Intl.DateTimeFormatOptions): string {
+  if (!dateStr) return "—"
+  return new Date(dateStr).toLocaleString("en-PK", {
+    ...opts,
+    timeZone: "Asia/Karachi",
+  })
+}
+
 export function UpcomingBills() {
   const [bills, setBills] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,7 +79,7 @@ export function UpcomingBills() {
     return (
       <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
         <TableCell className="font-medium whitespace-nowrap">
-          {new Date(t.due_date).toLocaleDateString()}
+          {formatPKT(t.due_date, { year: 'numeric', month: 'short', day: 'numeric' })}
         </TableCell>
         <TableCell>
           {daysLeft < 0 ? (

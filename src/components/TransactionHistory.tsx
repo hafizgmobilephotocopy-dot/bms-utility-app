@@ -24,12 +24,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+// Helper: format a date string in Pakistan Standard Time (PKT, UTC+5)
+function formatPKT(dateStr: string, opts: Intl.DateTimeFormatOptions): string {
+  if (!dateStr) return "—"
+  return new Date(dateStr).toLocaleString("en-PK", {
+    ...opts,
+    timeZone: "Asia/Karachi",
+  })
+}
+
+// Statuses that are "completed" — shown only in Completed Bills tab
+const COMPLETED_STATUSES = ["Paid", "Refunded_To_Customer", "Rolled_Over_To_New_Bill"]
+
 export function TransactionHistory() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterUtility, setFilterUtility] = useState("All")
-  
+
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedTx, setSelectedTx] = useState<any>(null)
@@ -51,6 +63,7 @@ export function TransactionHistory() {
         .from('transaction_history_view')
         .select('*')
         .eq('is_deleted', false)
+        .not('status', 'in', `(${COMPLETED_STATUSES.map(s => `"${s}"`).join(',')})`)
         .order('date_collected', { ascending: false })
 
       if (error) throw error
@@ -74,10 +87,10 @@ export function TransactionHistory() {
   async function handleUpdateTransaction() {
     if (!selectedTx) return
     setIsUpdating(true)
-    
+
     try {
       const updates: any = { status: updateStatus }
-      
+
       if (updateStatus === "Paid") {
         updates.payment_reference_id = updateRefId
         updates.payment_source = updateSource
@@ -91,9 +104,9 @@ export function TransactionHistory() {
         .eq('id', selectedTx.id)
 
       if (error) throw error
-      
+
       setIsDialogOpen(false)
-      fetchTransactions() // Refresh data
+      fetchTransactions()
     } catch (error) {
       console.error("Error updating transaction:", error)
       alert("Failed to update transaction.")
@@ -108,7 +121,7 @@ export function TransactionHistory() {
       setDeletingId(id)
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        
+
         const { error } = await supabase
           .from('customer_transactions')
           .update({
@@ -119,7 +132,7 @@ export function TransactionHistory() {
           .eq('id', id)
 
         if (error) throw error
-        
+
         fetchTransactions()
       } catch (error) {
         console.error("Error deleting transaction:", error)
@@ -133,7 +146,7 @@ export function TransactionHistory() {
   // Extract unique utility companies for the filter dropdown
   const utilities = ["All", ...Array.from(new Set(transactions.map(t => t.utility_company)))]
 
-  // Filter transactions: by utility company AND by search term (name, phone, consumer number, status)
+  // Filter transactions: by utility company AND by search term
   const filteredTransactions = transactions.filter(t => {
     const matchesUtility = filterUtility === "All" || t.utility_company === filterUtility
     const term = searchTerm.toLowerCase()
@@ -152,24 +165,18 @@ export function TransactionHistory() {
     }
 
     const headers = [
-      "Date",
-      "Customer",
-      "Phone",
-      "Utility",
-      "Consumer No.",
-      "Total Cash (PKR)",
-      "Manager",
-      "Status",
-      "Payment Source",
-      "Payment Ref ID"
+      "Date (PKT)", "Customer", "Phone", "Utility", "Consumer No.",
+      "Due Date", "Total Cash (PKR)", "Manager", "Status",
+      "Payment Source", "Payment Ref ID"
     ]
 
     const rows = filteredTransactions.map(t => [
-      `"${new Date(t.date_collected).toLocaleString()}"`,
+      `"${formatPKT(t.date_collected, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}"`,
       `"${(t.customer_name || '').replace(/"/g, '""')}"`,
       `"${t.phone_number || ''}"`,
       `"${t.utility_company || ''}"`,
       `"${t.consumer_number || ''}"`,
+      `"${t.due_date ? formatPKT(t.due_date, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}"`,
       t.total_cash_collected,
       `"${(t.manager_email || '').replace(/"/g, '""')}"`,
       `"${t.status || ''}"`,
@@ -177,11 +184,7 @@ export function TransactionHistory() {
       `"${(t.payment_reference_id || '').replace(/"/g, '""')}"`
     ])
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n")
-
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -209,6 +212,9 @@ export function TransactionHistory() {
               Export as CSV
             </Button>
           </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Showing active/pending transactions only. Paid, Refunded &amp; Rolled-Over bills are in <strong>Completed Bills</strong>.
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           <div className="p-4 flex flex-col sm:flex-row gap-3 bg-muted/10 border-b border-muted/50">
@@ -221,7 +227,7 @@ export function TransactionHistory() {
               />
             </div>
             <div>
-              <select 
+              <select
                 value={filterUtility}
                 onChange={(e) => setFilterUtility(e.target.value)}
                 className="flex h-10 w-full sm:w-48 rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -237,10 +243,11 @@ export function TransactionHistory() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Date (PKT)</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Utility</TableHead>
                   <TableHead>Consumer No.</TableHead>
+                  <TableHead>Due Date</TableHead>
                   <TableHead className="text-right">Total Cash</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Status</TableHead>
@@ -250,22 +257,17 @@ export function TransactionHistory() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading transactions...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading transactions...</TableCell>
                   </TableRow>
                 ) : filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No transactions found.</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No active transactions found.</TableCell>
                   </TableRow>
                 ) : (
                   filteredTransactions.map((t) => (
                     <TableRow key={t.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium text-xs whitespace-nowrap">
-                        {new Date(t.date_collected).toLocaleString(undefined, { 
-                          month: 'short', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {formatPKT(t.date_collected, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </TableCell>
                       <TableCell className="max-w-[120px] overflow-hidden">
                         <div>
@@ -280,12 +282,20 @@ export function TransactionHistory() {
                         )}
                       </TableCell>
                       <TableCell className="font-mono text-xs whitespace-nowrap">{t.consumer_number}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {t.due_date
+                          ? <span className={new Date(t.due_date) < new Date() ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                              {formatPKT(t.due_date, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          : <span className="text-muted-foreground">—</span>
+                        }
+                      </TableCell>
                       <TableCell className="text-right font-bold text-primary whitespace-nowrap">PKR {Number(t.total_cash_collected).toFixed(0)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground truncate max-w-[100px] overflow-hidden" title={t.manager_email}>{t.manager_email?.split('@')[0] || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge variant={
-                          t.status === 'Paid' ? 'default' : 
-                          t.status === 'Failed' || t.status === 'Reversed' ? 'destructive' : 
+                          t.status === 'Paid' ? 'default' :
+                          t.status === 'Failed' || t.status === 'Reversed' ? 'destructive' :
                           'outline'
                         } className="font-normal">
                           {t.status.replace(/_/g, ' ')}
@@ -293,16 +303,16 @@ export function TransactionHistory() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             className="h-8 px-2 text-xs"
                             onClick={() => openUpdateDialog(t)}
                           >
                             Update
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleDelete(t.id)}
@@ -329,11 +339,11 @@ export function TransactionHistory() {
               {selectedTx && `Change the status for ${selectedTx.utility_company} bill (Customer: ${selectedTx.customer_name}).`}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Status</label>
-              <select 
+              <select
                 value={updateStatus}
                 onChange={(e) => setUpdateStatus(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -352,7 +362,7 @@ export function TransactionHistory() {
               <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Payment Source (e.g. Bank Name, App, etc.)</label>
-                  <Input 
+                  <Input
                     value={updateSource}
                     onChange={(e) => setUpdateSource(e.target.value)}
                     placeholder="e.g. Allied Bank, Easypaisa, Cash..."
@@ -360,7 +370,7 @@ export function TransactionHistory() {
                 </div>
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Payment Reference ID / TID</label>
-                  <Input 
+                  <Input
                     value={updateRefId}
                     onChange={(e) => setUpdateRefId(e.target.value)}
                     placeholder="e.g. 02934812300"
@@ -373,7 +383,7 @@ export function TransactionHistory() {
               <div className="space-y-4 border p-4 rounded-lg bg-destructive/10 border-destructive/20">
                 <div className="grid gap-2">
                   <label className="text-sm font-bold text-destructive">Receiver's CNIC <span className="text-destructive">*</span></label>
-                  <Input 
+                  <Input
                     value={updateCnic}
                     onChange={(e) => setUpdateCnic(e.target.value)}
                     placeholder="e.g. 42101-1234567-1"
@@ -384,15 +394,15 @@ export function TransactionHistory() {
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isUpdating}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleUpdateTransaction} 
+            <Button
+              onClick={handleUpdateTransaction}
               disabled={
-                isUpdating || 
+                isUpdating ||
                 (updateStatus === 'Paid' && (!updateSource || !updateRefId)) ||
                 (updateStatus === 'Refunded_To_Customer' && (!updateCnic || updateCnic.length < 5))
               }

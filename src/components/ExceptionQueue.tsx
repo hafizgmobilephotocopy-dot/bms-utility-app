@@ -23,6 +23,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+// Helper: format a date string in Pakistan Standard Time (PKT, UTC+5)
+function formatPKT(dateStr: string, opts: Intl.DateTimeFormatOptions): string {
+  if (!dateStr) return "—"
+  return new Date(dateStr).toLocaleString("en-PK", {
+    ...opts,
+    timeZone: "Asia/Karachi",
+  })
+}
+
 export function ExceptionQueue() {
   const [exceptions, setExceptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
