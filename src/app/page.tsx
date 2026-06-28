@@ -23,6 +23,7 @@ export default function Dashboard() {
     exceptionsVault: 0,
     dormantVault: 0
   })
+  const [awaitingDuplicatesCount, setAwaitingDuplicatesCount] = useState(0)
 
   const todayStr = new Date().toISOString().split('T')[0]
   const [kpiStartDate, setKpiStartDate] = useState(todayStr)
@@ -118,6 +119,20 @@ export default function Dashboard() {
         exceptionsVault: totalExceptions,
         dormantVault: totalDormant
       })
+
+      // Fetch awaiting duplicate count (consumer numbers with Failed/Reversed/Dormant bills)
+      const { data: awaitingTxs } = await supabase
+        .from('transaction_history_view')
+        .select('consumer_number, utility_company')
+        .in('status', ['Failed', 'Reversed', 'Gateway_Failed', 'Held_Dormant'])
+        .eq('is_deleted', false)
+
+      if (awaitingTxs) {
+        // Count unique consumer+utility combos that ALSO have another bill (duplicate)
+        const seen = new Set<string>()
+        awaitingTxs.forEach(tx => seen.add(`${tx.utility_company}__${tx.consumer_number}`))
+        setAwaitingDuplicatesCount(seen.size)
+      }
     } catch (error) {
       console.error("Error fetching KPIs:", error)
     }
@@ -184,9 +199,14 @@ export default function Dashboard() {
               <Button
                 variant={view === "duplicates" ? "default" : "ghost"}
                 onClick={() => setView("duplicates")}
-                className="font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                className="font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 relative"
               >
                 ⚠️ Duplicate Bills
+                {awaitingDuplicatesCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-[11px] font-black rounded-full bg-destructive text-destructive-foreground animate-pulse">
+                    {awaitingDuplicatesCount}
+                  </span>
+                )}
               </Button>
             </div>
             <form action={logout}>

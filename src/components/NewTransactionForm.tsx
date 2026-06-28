@@ -44,6 +44,7 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [totalCashOwed, setTotalCashOwed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [slipAlert, setSlipAlert] = useState<any[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -61,12 +62,33 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const billAmount = form.watch("billAmount")
   const serviceFee = form.watch("serviceFee")
+  const consumerNumber = form.watch("consumerNumber")
+  const utilityCompany = form.watch("utilityCompany")
 
   useEffect(() => {
     const amount = Number(billAmount) || 0
     const fee = Number(serviceFee) || 0
     setTotalCashOwed(amount + fee)
   }, [billAmount, serviceFee])
+
+  // Live slip alert: debounced check for existing problem slips for same consumer + utility
+  useEffect(() => {
+    if (!consumerNumber || consumerNumber.length < 3 || !utilityCompany || utilityCompany.length < 2) {
+      setSlipAlert([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('transaction_history_view')
+        .select('id, status, bill_amount, total_cash_collected, date_collected, customer_name')
+        .eq('consumer_number', consumerNumber.trim())
+        .eq('utility_company', utilityCompany.trim())
+        .in('status', ['Failed', 'Reversed', 'Gateway_Failed', 'Held_Dormant'])
+        .eq('is_deleted', false)
+      setSlipAlert(data || [])
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [consumerNumber, utilityCompany])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
@@ -240,6 +262,40 @@ export function NewTransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                 </FormItem>
               )}
             />
+
+            {/* ⚠️ SLIP ALERT — shown when existing Failed/Dormant slips found for same consumer */}
+            {slipAlert.length > 0 && (
+              <div className="rounded-xl border-2 border-destructive bg-destructive/10 p-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl mt-0.5">🚨</span>
+                  <div className="flex-1">
+                    <p className="font-black text-destructive text-base uppercase tracking-wide">
+                      STOP — Pull Physical Slip{slipAlert.length > 1 ? 's' : ''} First!
+                    </p>
+                    <p className="text-sm text-destructive/80 mt-0.5 mb-3">
+                      You have {slipAlert.length} existing slip{slipAlert.length > 1 ? 's' : ''} for <strong>{utilityCompany} · Consumer {consumerNumber}</strong> in your drawer. Staple {slipAlert.length > 1 ? 'them' : 'it'} to this new bill before saving.
+                    </p>
+                    <div className="space-y-2">
+                      {slipAlert.map((s) => (
+                        <div key={s.id} className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-lg px-3 py-2 border border-destructive/20">
+                          <div>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-2 ${
+                              s.status === 'Held_Dormant'
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {s.status.replace(/_/g, ' ')}
+                            </span>
+                            <span className="text-sm text-muted-foreground">{s.customer_name}</span>
+                          </div>
+                          <span className="font-black text-destructive">PKR {Number(s.total_cash_collected).toFixed(0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Total Cash Summary */}
             <div className="rounded-lg border bg-muted/30 p-4 flex justify-between items-center">
