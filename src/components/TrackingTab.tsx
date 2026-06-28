@@ -47,6 +47,11 @@ export function TrackingTab() {
   const [updateCnic, setUpdateCnic] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
 
+  // Roll-over confirmation popup state
+  const [rolloverBills, setRolloverBills] = useState<any[]>([])
+  const [isRolloverDialogOpen, setIsRolloverDialogOpen] = useState(false)
+  const [isRollingOver, setIsRollingOver] = useState(false)
+
   // Only search when user types at least 3 characters
   useEffect(() => {
     if (searchTerm.length >= 3) {
@@ -109,13 +114,51 @@ export function TrackingTab() {
       if (error) throw error
 
       setIsDialogOpen(false)
-      // Re-run search to reflect changes
       searchTransactions()
+
+      // If marked as Paid, check for Failed/Reversed bills with same consumer + utility
+      if (updateStatus === "Paid") {
+        const { data: failedBills } = await supabase
+          .from('transaction_history_view')
+          .select('*')
+          .eq('consumer_number', selectedTx.consumer_number)
+          .eq('utility_company', selectedTx.utility_company)
+          .in('status', ['Failed', 'Reversed', 'Gateway_Failed'])
+          .eq('is_deleted', false)
+          .neq('id', selectedTx.id)
+
+        if (failedBills && failedBills.length > 0) {
+          setRolloverBills(failedBills)
+          setIsRolloverDialogOpen(true)
+        }
+      }
     } catch (error) {
       console.error("Error updating transaction:", error)
       alert("Failed to update transaction.")
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  async function handleRolloverConfirm() {
+    setIsRollingOver(true)
+    try {
+      const ids = rolloverBills.map(b => b.id)
+      const { error } = await supabase
+        .from('customer_transactions')
+        .update({ status: 'Rolled_Over_To_New_Bill' })
+        .in('id', ids)
+
+      if (error) throw error
+
+      setIsRolloverDialogOpen(false)
+      setRolloverBills([])
+      searchTransactions()
+    } catch (error) {
+      console.error("Error rolling over bills:", error)
+      alert("Failed to roll over bills.")
+    } finally {
+      setIsRollingOver(false)
     }
   }
 
@@ -315,6 +358,58 @@ export function TrackingTab() {
               }
             >
               {isUpdating ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Roll-Over Confirmation Dialog */}
+      <Dialog open={isRolloverDialogOpen} onOpenChange={(open) => { if (!open) { setIsRolloverDialogOpen(false); setRolloverBills([]) } }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <span className="text-xl">⚠️</span> Failed Bill{rolloverBills.length > 1 ? "s" : ""} Found — Roll Over?
+            </DialogTitle>
+            <DialogDescription>
+              The bill you just paid has {rolloverBills.length} previously failed/reversed bill{rolloverBills.length > 1 ? "s" : ""} for the same consumer ({rolloverBills[0]?.utility_company} · {rolloverBills[0]?.consumer_number}). Do you want to mark {rolloverBills.length > 1 ? "them" : "it"} as <strong>Rolled Over to New Bill</strong>?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2 max-h-60 overflow-y-auto">
+            {rolloverBills.map((bill) => (
+              <div key={bill.id} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
+                <div>
+                  <p className="font-semibold text-sm">{bill.customer_name}</p>
+                  <p className="text-xs text-muted-foreground">{bill.consumer_number} · {bill.utility_company}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Collected: {formatPKT(bill.date_collected, { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-destructive">PKR {Number(bill.total_cash_collected).toFixed(0)}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">
+                    {bill.status.replace(/_/g, " ")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setIsRolloverDialogOpen(false); setRolloverBills([]) }}
+              disabled={isRollingOver}
+            >
+              No, Keep as Failed
+            </Button>
+            <Button
+              variant="default"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleRolloverConfirm}
+              disabled={isRollingOver}
+            >
+              {isRollingOver ? "Rolling Over..." : `✓ Yes, Roll Over ${rolloverBills.length > 1 ? `${rolloverBills.length} Bills` : "This Bill"}`}
             </Button>
           </DialogFooter>
         </DialogContent>
