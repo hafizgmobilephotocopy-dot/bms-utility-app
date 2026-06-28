@@ -10,12 +10,13 @@ import { DeletedTransactions } from "@/components/DeletedTransactions"
 import { CompletedTransactions } from "@/components/CompletedTransactions"
 import { DormantVault } from "@/components/DormantVault"
 import { TrackingTab } from "@/components/TrackingTab"
+import { DuplicateBills } from "@/components/DuplicateBills"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { logout } from "./login/actions"
 
 export default function Dashboard() {
-  const [view, setView] = useState<"expenses" | "transactions" | "history" | "tracking" | "exceptions" | "upcoming" | "deleted" | "completed" | "dormant">("transactions")
+  const [view, setView] = useState<"expenses" | "transactions" | "history" | "tracking" | "exceptions" | "upcoming" | "deleted" | "completed" | "dormant" | "duplicates">("transactions")
   const [kpis, setKpis] = useState({
     totalCashToday: 0,
     serviceFeeToday: 0,
@@ -180,6 +181,13 @@ export default function Dashboard() {
               >
                 Deleted Bills
               </Button>
+              <Button
+                variant={view === "duplicates" ? "default" : "ghost"}
+                onClick={() => setView("duplicates")}
+                className="font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              >
+                ⚠️ Duplicate Bills
+              </Button>
             </div>
             <form action={logout}>
               <Button variant="outline" type="submit" className="font-medium border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
@@ -295,6 +303,12 @@ export default function Dashboard() {
         {view === "deleted" && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <DeletedTransactions />
+          </div>
+        )}
+
+        {view === "duplicates" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <DuplicateBills />
           </div>
         )}
       </div>
